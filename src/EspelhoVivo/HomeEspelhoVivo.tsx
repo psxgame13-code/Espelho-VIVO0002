@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import './HomeEspelhoVivo.css';
+import { useDistanceTracking } from './useDistanceTracking';
 
 interface HomeEspelhoVivoProps {
   email: string;
@@ -10,89 +10,10 @@ export default function HomeEspelhoVivo({
   email,
   onLogout,
 }: HomeEspelhoVivoProps) {
-  const [gpsStatus, setGpsStatus] = useState<'loading' | 'active' | 'error'>('loading');
-  const [distance, setDistance] = useState('0,000 km');
-  const [tempoParado] = useState('0:00:00');
-  const [veiculos] = useState('0,000 km');
-  const [tempoTela] = useState('0:00:00 hs');
-  const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const { distances, gpsStatus } = useDistanceTracking();
 
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsStatus('error');
-      return;
-    }
-
-    // Posição inicial
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLastCoords({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
-        setGpsStatus('active');
-      },
-      (error) => {
-        console.error('Erro ao acessar GPS:', error);
-        setGpsStatus('error');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      }
-    );
-
-    // Monitoramento contínuo
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-
-        if (lastCoords) {
-          const d = calculateDistance(
-            lastCoords.lat,
-            lastCoords.lng,
-            latitude,
-            longitude
-          );
-          
-          if (d > 0.001) {
-            setDistance(`${d.toFixed(3).replace('.', ',')} km`);
-          }
-        }
-
-        setLastCoords({ lat: latitude, lng: longitude });
-        setGpsStatus('active');
-      },
-      (error) => {
-        console.error('Erro ao monitorar GPS:', error);
-        setGpsStatus('error');
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 5000,
-      }
-    );
-
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-    };
-  }, [lastCoords]);
-
-  // Cálculo de distância (Haversine)
-  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Raio da Terra em km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+  const formatKm = (value: number) => {
+    return `${value.toFixed(3).replace('.', ',')} km`;
   };
 
   return (
@@ -134,30 +55,30 @@ export default function HomeEspelhoVivo({
         <section className="metrics-grid">
           <div className="metric-card">
             <span className="metric-icon">🚶</span>
-            <span className="card-label">DISTÂNCIA</span>
-            <strong>{distance}</strong>
-            <small>Distância detectada</small>
+            <span className="card-label">DISTÂNCIA HOJE</span>
+            <strong>{formatKm(distances.day)}</strong>
+            <small>Percorrida hoje</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">⏱️</span>
-            <span className="card-label">TEMPO PARADO</span>
-            <strong>{tempoParado}</strong>
-            <small>Tempo em repouso</small>
+            <span className="metric-icon">📅</span>
+            <span className="card-label">SEMANA</span>
+            <strong>{formatKm(distances.week)}</strong>
+            <small>Acumulado da semana</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">🚗</span>
-            <span className="card-label">VEÍCULOS</span>
-            <strong>{veiculos}</strong>
-            <small>Percurso em transporte</small>
+            <span className="metric-icon">🗓️</span>
+            <span className="card-label">MÊS</span>
+            <strong>{formatKm(distances.month)}</strong>
+            <small>Acumulado do mês</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">📱</span>
-            <span className="card-label">TELA</span>
-            <strong>{tempoTela}</strong>
-            <small>Tempo de uso do dispositivo</small>
+            <span className="metric-icon">🌍</span>
+            <span className="card-label">ANO</span>
+            <strong>{formatKm(distances.year)}</strong>
+            <small>Acumulado do ano</small>
           </div>
         </section>
 
