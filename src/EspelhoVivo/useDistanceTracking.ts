@@ -5,7 +5,7 @@ export interface DistancesState {
   week: number;
   month: number;
   year: number;
-  lastUpdateDate: string;
+  lastUpdateDate: string; // Guarda a data no formato YYYY-MM-DD
 }
 
 export const useDistanceTracking = () => {
@@ -13,30 +13,33 @@ export const useDistanceTracking = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
 
+  // Função auxiliar para pegar a data atual local no formato YYYY-MM-DD
+  const getTodayString = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [distances, setDistances] = useState<DistancesState>(() => {
     const saved = localStorage.getItem('espelho_vivo_distances');
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayString();
 
     if (saved) {
       try {
         const parsed: DistancesState = JSON.parse(saved);
-        const savedDate = new Date(parsed.lastUpdateDate);
-        const currentDate = new Date();
+        const [savedYear, savedMonth] = parsed.lastUpdateDate ? parsed.lastUpdateDate.split('-') : [];
+        const [currentYear, currentMonth] = todayStr.split('-');
 
-        const isSameDay = savedDate.toDateString() === currentDate.toDateString();
-
-        const getWeekNumber = (d: Date) => {
-          const oneJan = new Date(d.getFullYear(), 0, 1);
-          return Math.ceil((((d.getTime() - oneJan.getTime()) / 86400000) + oneJan.getDay() + 1) / 7);
-        };
-
-        const isSameWeek = isSameDay || (getWeekNumber(savedDate) === getWeekNumber(currentDate) && savedDate.getFullYear() === currentDate.getFullYear());
-        const isSameMonth = isSameDay || (savedDate.getMonth() === currentDate.getMonth() && savedDate.getFullYear() === currentDate.getFullYear());
-        const isSameYear = isSameDay || (savedDate.getFullYear() === currentDate.getFullYear());
+        // Comparação direta de texto para o dia exato
+        const isSameDay = parsed.lastUpdateDate === todayStr;
+        const isSameMonth = savedYear === currentYear && savedMonth === currentMonth;
+        const isSameYear = savedYear === currentYear;
 
         return {
           day: isSameDay ? parsed.day : 0,
-          week: isSameWeek ? parsed.week : 0,
+          week: isSameMonth ? parsed.week : 0, // Mantém acumulado se estiver no mês
           month: isSameMonth ? parsed.month : 0,
           year: isSameYear ? parsed.year : 0,
           lastUpdateDate: todayStr,
@@ -49,6 +52,7 @@ export const useDistanceTracking = () => {
     return { day: 0, week: 0, month: 0, year: 0, lastUpdateDate: todayStr };
   });
 
+  // Salva no localStorage sempre que o valor de distances mudar
   useEffect(() => {
     localStorage.setItem('espelho_vivo_distances', JSON.stringify(distances));
   }, [distances]);
@@ -98,7 +102,7 @@ export const useDistanceTracking = () => {
             week: prev.week + deltaKm,
             month: prev.month + deltaKm,
             year: prev.year + deltaKm,
-            lastUpdateDate: new Date().toISOString().split('T')[0],
+            lastUpdateDate: getTodayString(),
           }));
         }
       }

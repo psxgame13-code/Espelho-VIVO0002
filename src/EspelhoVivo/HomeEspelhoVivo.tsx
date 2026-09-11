@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import './HomeEspelhoVivo.css';
 import { useDistanceTracking } from './useDistanceTracking';
 
@@ -11,11 +12,66 @@ export default function HomeEspelhoVivo({
   onLogout,
 }: HomeEspelhoVivoProps) {
   const { distances, gpsStatus } = useDistanceTracking();
+  const [view, setView] = useState<'home' | 'detalhes-distancia'>('home');
 
   const formatKm = (value: number) => {
     return `${value.toFixed(3).replace('.', ',')} km`;
   };
 
+  // TELA DE DETALHES DE DISTÂNCIA
+  if (view === 'detalhes-distancia') {
+    return (
+      <div className="espelho-home">
+        <header className="home-header">
+          <div>
+            <button 
+              className="logout-button" 
+              onClick={() => setView('home')} 
+              style={{ marginBottom: '10px' }}
+            >
+              ← Voltar ao Painel
+            </button>
+            <h1>Histórico de Distância</h1>
+            <p>Acompanhamento detalhado do seu deslocamento.</p>
+          </div>
+        </header>
+
+        <main className="home-content">
+          <section className="metrics-grid">
+            <div className="metric-card">
+              <span className="metric-icon">☀️</span>
+              <span className="card-label">HOJE</span>
+              <strong>{formatKm(distances.day)}</strong>
+              <small>Total percorrido hoje</small>
+            </div>
+
+            <div className="metric-card">
+              <span className="metric-icon">📅</span>
+              <span className="card-label">SEMANA</span>
+              <strong>{formatKm(distances.week)}</strong>
+              <small>Acumulado da semana</small>
+            </div>
+
+            <div className="metric-card">
+              <span className="metric-icon">🗓️</span>
+              <span className="card-label">MÊS</span>
+              <strong>{formatKm(distances.month)}</strong>
+              <small>Acumulado do mês</small>
+            </div>
+
+            <div className="metric-card">
+              <span className="metric-icon">🌍</span>
+              <span className="card-label">ANO</span>
+              <strong>{formatKm(distances.year)}</strong>
+              <small>Acumulado do ano</small>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
+
+  // TELA PRINCIPAL (PAINEL)
   return (
     <div className="espelho-home">
       <header className="home-header">
@@ -52,68 +108,44 @@ export default function HomeEspelhoVivo({
           </div>
         </section>
 
-        {/* MÉTROLOGIA PRINCIPAL */}
+        {/* MÉTRICAS PRINCIPAIS */}
         <section className="metrics-grid">
-          <div className="metric-card">
+          {/* Card Clicável de Distância */}
+          <div 
+            className="metric-card" 
+            onClick={() => setView('detalhes-distancia')}
+            style={{ cursor: 'pointer' }}
+          >
             <span className="metric-icon">🚶</span>
-            <span className="card-label">DISTÂNCIA</span>
+            <span className="card-label">DISTÂNCIA ➔</span>
             <strong>{formatKm(distances.day)}</strong>
-            <small>Distância detectada</small>
+            <small>Clique para ver detalhes</small>
           </div>
 
-          <div className="metric-card">
+          {/* PONTO 1: Efeito de calibração do algoritmo para gerar expectativa */}
+          <div className="metric-card" style={{ opacity: 0.85 }}>
             <span className="metric-icon">⏱️</span>
             <span className="card-label">TEMPO PARADO</span>
             <strong>0:00:00</strong>
-            <small>Tempo em repouso</small>
+            <small style={{ color: '#d4af37' }}> Calibrando algoritmo...</small>
           </div>
 
-          <div className="metric-card">
+          <div className="metric-card" style={{ opacity: 0.85 }}>
             <span className="metric-icon">🚗</span>
             <span className="card-label">VEÍCULOS</span>
             <strong>0,000 km</strong>
-            <small>Percurso em transporte</small>
+            <small style={{ color: '#d4af37' }}> Calibrando algoritmo...</small>
           </div>
 
-          <div className="metric-card">
+          <div className="metric-card" style={{ opacity: 0.85 }}>
             <span className="metric-icon">📱</span>
             <span className="card-label">TELA</span>
             <strong>0:00:00 hs</strong>
-            <small>Tempo de uso do dispositivo</small>
+            <small style={{ color: '#d4af37' }}> Calibrando algoritmo...</small>
           </div>
         </section>
 
-        {/* ACUMULADO POR PERÍODO (ABAIXO) */}
-        <section className="metrics-grid" style={{ marginTop: '1.5rem' }}>
-          <div className="metric-card">
-            <span className="metric-icon">☀️</span>
-            <span className="card-label">HOJE</span>
-            <strong>{formatKm(distances.day)}</strong>
-            <small>Total do dia</small>
-          </div>
-
-          <div className="metric-card">
-            <span className="metric-icon">📅</span>
-            <span className="card-label">SEMANA</span>
-            <strong>{formatKm(distances.week)}</strong>
-            <small>Acumulado da semana</small>
-          </div>
-
-          <div className="metric-card">
-            <span className="metric-icon">🗓️</span>
-            <span className="card-label">MÊS</span>
-            <strong>{formatKm(distances.month)}</strong>
-            <small>Acumulado do mês</small>
-          </div>
-
-          <div className="metric-card">
-            <span className="metric-icon">🌍</span>
-            <span className="card-label">ANO</span>
-            <strong>{formatKm(distances.year)}</strong>
-            <small>Acumulado do ano</small>
-          </div>
-        </section>
-
+        {/* PONTO 2: Mensagem Dinâmica e Filosófica de Acordo com a Distância */}
         <section className="insight-card">
           <span className="card-label">ÚLTIMA PERCEPÇÃO</span>
 
@@ -121,12 +153,23 @@ export default function HomeEspelhoVivo({
             <div className="insight-symbol">◈</div>
 
             <div>
-              <h3>Seu dia está começando a ganhar forma.</h3>
-              <p>
-                Conforme novos sinais forem captados, o Espelho Vivo
-                poderá identificar padrões do seu comportamento ao longo
-                dos dias.
-              </p>
+              {distances.day >= 1.0 ? (
+                <>
+                  <h3 style={{ color: '#d4af37' }}>Marco atingido: Seu movimento ganhou tração.</h3>
+                  <p>
+                    Seu gêmeo digital registrou seus primeiros movimentos significativos hoje ({formatKm(distances.day)}). Cada deslocamento é um padrão sendo mapeado.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h3>Seu dia está começando a ganhar forma.</h3>
+                  <p>
+                    Conforme novos sinais forem captados, o Espelho Vivo
+                    poderá identificar padrões do seu comportamento ao longo
+                    dos dias.
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </section>
