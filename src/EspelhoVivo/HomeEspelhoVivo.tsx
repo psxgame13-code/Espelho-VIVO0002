@@ -1,11 +1,6 @@
 import { useState, useEffect } from 'react';
 import './HomeEspelhoVivo.css';
 
-interface LocationData {
-  accuracy: number;
-  timestamp: number;
-}
-
 interface HomeEspelhoVivoProps {
   email: string;
   onLogout: () => void;
@@ -17,9 +12,9 @@ export default function HomeEspelhoVivo({
 }: HomeEspelhoVivoProps) {
   const [gpsStatus, setGpsStatus] = useState<'loading' | 'active' | 'error'>('loading');
   const [distance, setDistance] = useState('0,000 km');
-  const [tempoParado, setTempoParado] = useState('0:00:00');
-  const [veiculos, setVeiculos] = useState('0,000 km');
-  const [tempoTela, setTempoTela] = useState('0:00:00 hs');
+  const [tempoParado] = useState('0:00:00');
+  const [veiculos] = useState('0,000 km');
+  const [tempoTela] = useState('0:00:00 hs');
   const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
