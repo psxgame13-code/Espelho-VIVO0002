@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import './HomeEspelhoVivo.css';
 
 interface LocationData {
-  latitude: number;
-  longitude: number;
   accuracy: number;
   timestamp: number;
 }
@@ -17,29 +15,26 @@ export default function HomeEspelhoVivo({
   email,
   onLogout,
 }: HomeEspelhoVivoProps) {
-  const [location, setLocation] = useState<LocationData | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'loading' | 'active' | 'error'>('loading');
-  const [distance, setDistance] = useState(0);
-  const [lastLocation, setLastLocation] = useState<LocationData | null>(null);
+  const [distance, setDistance] = useState('0,000 km');
+  const [tempoParado, setTempoParado] = useState('0:00:00');
+  const [veiculos, setVeiculos] = useState('0,000 km');
+  const [tempoTela, setTempoTela] = useState('0:00:00 hs');
+  const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
-    // Solicitar permissão de geolocalização
     if (!navigator.geolocation) {
       setGpsStatus('error');
       return;
     }
 
-    // Obter posição atual uma vez
+    // Posição inicial
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const newLocation: LocationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: Date.now(),
-        };
-        setLocation(newLocation);
-        setLastLocation(newLocation);
+        setLastCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
         setGpsStatus('active');
       },
       (error) => {
@@ -53,29 +48,26 @@ export default function HomeEspelhoVivo({
       }
     );
 
-    // Monitorar posição continuamente
+    // Monitoramento contínuo
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
-        const newLocation: LocationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: Date.now(),
-        };
+        const { latitude, longitude } = position.coords;
 
-        // Calcular distância com base na última posição
-        if (lastLocation) {
+        if (lastCoords) {
           const d = calculateDistance(
-            lastLocation.latitude,
-            lastLocation.longitude,
-            newLocation.latitude,
-            newLocation.longitude
+            lastCoords.lat,
+            lastCoords.lng,
+            latitude,
+            longitude
           );
-          setDistance((prev) => prev + d);
+          
+          if (d > 0.001) {
+            setDistance(`${d.toFixed(3).replace('.', ',')} km`);
+          }
         }
 
-        setLocation(newLocation);
-        setLastLocation(newLocation);
+        setLastCoords({ lat: latitude, lng: longitude });
+        setGpsStatus('active');
       },
       (error) => {
         console.error('Erro ao monitorar GPS:', error);
@@ -91,9 +83,9 @@ export default function HomeEspelhoVivo({
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [lastLocation]);
+  }, [lastCoords]);
 
-  // Fórmula de Haversine para calcular distância entre dois pontos
+  // Cálculo de distância (Haversine)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Raio da Terra em km
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -131,9 +123,7 @@ export default function HomeEspelhoVivo({
             </h2>
             <p>
               {gpsStatus === 'active'
-                ? location
-                  ? `Latitude: ${location.latitude.toFixed(5)} | Longitude: ${location.longitude.toFixed(5)}`
-                  : 'Obtendo localização...'
+                ? 'Monitoramento de sinal ativo e sincronizado.'
                 : gpsStatus === 'loading'
                   ? 'Solicitando acesso ao GPS...'
                   : 'Verifique as permissões de localização do seu navegador.'}
@@ -149,30 +139,30 @@ export default function HomeEspelhoVivo({
         <section className="metrics-grid">
           <div className="metric-card">
             <span className="metric-icon">🚶</span>
-            <span className="card-label">MOVIMENTO</span>
-            <strong>{distance > 0.01 ? Math.floor(distance * 10) / 10 : '0'} km</strong>
+            <span className="card-label">DISTÂNCIA</span>
+            <strong>{distance}</strong>
             <small>Distância detectada</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">📍</span>
-            <span className="card-label">PRECISÃO</span>
-            <strong>{location ? Math.round(location.accuracy) : '—'} m</strong>
-            <small>Margem de erro</small>
+            <span className="metric-icon">⏱️</span>
+            <span className="card-label">TEMPO PARADO</span>
+            <strong>{tempoParado}</strong>
+            <small>Tempo em repouso</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">🌍</span>
-            <span className="card-label">LATITUDE</span>
-            <strong>{location ? location.latitude.toFixed(4) : '—'}</strong>
-            <small>Coordenada N/S</small>
+            <span className="metric-icon">🚗</span>
+            <span className="card-label">VEÍCULOS</span>
+            <strong>{veiculos}</strong>
+            <small>Percurso em transporte</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">🧭</span>
-            <span className="card-label">LONGITUDE</span>
-            <strong>{location ? location.longitude.toFixed(4) : '—'}</strong>
-            <small>Coordenada L/O</small>
+            <span className="metric-icon">📱</span>
+            <span className="card-label">TELA</span>
+            <strong>{tempoTela}</strong>
+            <small>Tempo de uso do dispositivo</small>
           </div>
         </section>
 
