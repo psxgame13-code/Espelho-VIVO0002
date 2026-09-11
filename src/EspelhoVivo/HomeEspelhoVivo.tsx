@@ -1,21 +1,112 @@
+import { useState, useEffect } from 'react';
 import './HomeEspelhoVivo.css';
-import { useDistanceTracking } from './useDistanceTracking';
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy: number;
+  timestamp: number;
+}
 
 interface HomeEspelhoVivoProps {
   email: string;
   onLogout: () => void;
 }
 
-function formatKm(value: number): string {
-  return value.toFixed(3).replace('.', ',');
-}
-
 export default function HomeEspelhoVivo({
   email,
   onLogout,
 }: HomeEspelhoVivoProps) {
-  const { tracking, lastPosition, totals, error, start, stop } =
-    useDistanceTracking();
+  const [location, setLocation] = useState<LocationData | null>(null);
+  const [gpsStatus, setGpsStatus] = useState<'loading' | 'active' | 'error'>('loading');
+  const [distance, setDistance] = useState(0);
+  const [lastLocation, setLastLocation] = useState<LocationData | null>(null);
+
+  useEffect(() => {
+    // Solicitar permissão de geolocalização
+    if (!navigator.geolocation) {
+      setGpsStatus('error');
+      return;
+    }
+
+    // Obter posição atual uma vez
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation: LocationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: Date.now(),
+        };
+        setLocation(newLocation);
+        setLastLocation(newLocation);
+        setGpsStatus('active');
+      },
+      (error) => {
+        console.error('Erro ao acessar GPS:', error);
+        setGpsStatus('error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      }
+    );
+
+    // Monitorar posição continuamente
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLocation: LocationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          timestamp: Date.now(),
+        };
+
+        // Calcular distância com base na última posição
+        if (lastLocation) {
+          const d = calculateDistance(
+            lastLocation.latitude,
+            lastLocation.longitude,
+            newLocation.latitude,
+            newLocation.longitude
+          );
+          setDistance((prev) => prev + d);
+        }
+
+        setLocation(newLocation);
+        setLastLocation(newLocation);
+      },
+      (error) => {
+        console.error('Erro ao monitorar GPS:', error);
+        setGpsStatus('error');
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 5000,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [lastLocation]);
+
+  // Fórmula de Haversine para calcular distância entre dois pontos
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Raio da Terra em km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
 
   return (
     <div className="espelho-home">
@@ -32,109 +123,56 @@ export default function HomeEspelhoVivo({
       </header>
 
       <main className="home-content">
-        {/* ===== CARD DE DISTÂNCIA (GPS) ===== */}
-        <section className="status-card distance-card">
-          <div className="distance-header">
-            <div>
-              <span className="card-label">DISTÂNCIA PERCORRIDA</span>
-              <h2>Quilômetros</h2>
-              <p>
-                {tracking
-                  ? 'GPS ativo — deixe o app aberto para continuar contando.'
-                  : 'Toque em Iniciar para começar a contar os km.'}
-              </p>
-            </div>
-
-            <button
-              className={`tracking-button ${tracking ? 'tracking-active' : ''}`}
-              onClick={tracking ? stop : start}
-            >
-              {tracking ? 'Parar' : 'Iniciar'}
-            </button>
-          </div>
-
-          {error && <p className="distance-error">{error}</p>}
-
-          <div className="distance-grid">
-            <div className="distance-item">
-              <small>Hoje</small>
-              <strong>
-                {formatKm(totals.today)} <span>km</span>
-              </strong>
-            </div>
-            <div className="distance-item">
-              <small>Esta semana</small>
-              <strong>
-                {formatKm(totals.week)} <span>km</span>
-              </strong>
-            </div>
-            <div className="distance-item">
-              <small>Este mês</small>
-              <strong>
-                {formatKm(totals.month)} <span>km</span>
-              </strong>
-            </div>
-            <div className="distance-item">
-              <small>Este ano</small>
-              <strong>
-                {formatKm(totals.year)} <span>km</span>
-              </strong>
-            </div>
-          </div>
-
-          {lastPosition && tracking && (
-            <p className="distance-accuracy">
-              Precisão atual: ±{Math.round(lastPosition.accuracy)} m
-            </p>
-          )}
-        </section>
-
-        {/* ===== STATUS ===== */}
         <section className="status-card">
           <div>
             <span className="card-label">ESTADO ATUAL</span>
-            <h2>{tracking ? 'Monitorando distância' : 'Em observação'}</h2>
+            <h2>
+              {gpsStatus === 'active' ? 'GPS Ativo' : gpsStatus === 'loading' ? 'Aguardando GPS...' : 'GPS Indisponível'}
+            </h2>
             <p>
-              {tracking
-                ? 'GPS ativo. Os km só são contados enquanto o app está aberto.'
-                : 'O Espelho Vivo está começando a construir uma percepção do seu comportamento.'}
+              {gpsStatus === 'active'
+                ? location
+                  ? `Latitude: ${location.latitude.toFixed(5)} | Longitude: ${location.longitude.toFixed(5)}`
+                  : 'Obtendo localização...'
+                : gpsStatus === 'loading'
+                  ? 'Solicitando acesso ao GPS...'
+                  : 'Verifique as permissões de localização do seu navegador.'}
             </p>
           </div>
 
-          <div className={`status-indicator ${tracking ? 'live' : ''}`}>
-            <span></span>
-            {tracking ? 'Ao vivo' : 'Ativo'}
+          <div className="status-indicator">
+            <span className={gpsStatus === 'active' ? 'active' : ''}></span>
+            {gpsStatus === 'active' ? 'Ativo' : gpsStatus === 'loading' ? 'Conectando' : 'Inativo'}
           </div>
         </section>
 
-        {/* ===== MÉTRICAS (placeholder) ===== */}
         <section className="metrics-grid">
           <div className="metric-card">
             <span className="metric-icon">🚶</span>
             <span className="card-label">MOVIMENTO</span>
-            <strong>—</strong>
-            <small>Caminhando hoje</small>
+            <strong>{distance > 0.01 ? Math.floor(distance * 10) / 10 : '0'} km</strong>
+            <small>Distância detectada</small>
           </div>
 
           <div className="metric-card">
             <span className="metric-icon">📍</span>
-            <span className="card-label">DESLOCAMENTO</span>
-            <strong>{formatKm(totals.today)} km</strong>
-            <small>Percorridos hoje</small>
+            <span className="card-label">PRECISÃO</span>
+            <strong>{location ? Math.round(location.accuracy) : '—'} m</strong>
+            <small>Margem de erro</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">⏱</span>
-            <span className="card-label">TEMPO PARADO</span>
-            <strong>—</strong>
-            <small>Sem movimento detectado</small>
+            <span className="metric-icon">🌍</span>
+            <span className="card-label">LATITUDE</span>
+            <strong>{location ? location.latitude.toFixed(4) : '—'}</strong>
+            <small>Coordenada N/S</small>
           </div>
 
           <div className="metric-card">
-            <span className="metric-icon">📱</span>
-            <span className="card-label">TELA</span>
-            <strong>—</strong>
-            <small>Tempo de uso hoje</small>
+            <span className="metric-icon">🧭</span>
+            <span className="card-label">LONGITUDE</span>
+            <strong>{location ? location.longitude.toFixed(4) : '—'}</strong>
+            <small>Coordenada L/O</small>
           </div>
         </section>
 
@@ -165,7 +203,9 @@ export default function HomeEspelhoVivo({
             </p>
           </div>
 
-          <div className="future-label">HUMAN DIGITAL TWIN</div>
+          <div className="future-label">
+            HUMAN DIGITAL TWIN
+          </div>
         </section>
 
         <section className="privacy-card">
@@ -173,8 +213,8 @@ export default function HomeEspelhoVivo({
           <div>
             <strong>Seus dados pertencem a você.</strong>
             <p>
-              A trilha de GPS não é salva — apenas os totais de quilômetros.
-              Tudo fica no seu aparelho.
+              O Espelho Vivo foi pensado para trabalhar apenas com sinais
+              autorizados pelo usuário.
             </p>
           </div>
         </section>
