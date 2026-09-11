@@ -7,6 +7,10 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
+      devOptions: {
+        enabled: true // Permite testar o PWA durante o desenvolvimento
+      },
       manifest: {
         name: 'Espelho Vivo - Human Digital Twin',
         short_name: 'Espelho Vivo',
@@ -19,15 +23,15 @@ export default defineConfig({
           {
             src: '/icon-192.png',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: '/icon-512.png',
             sizes: '512x512',
-            type: 'image/png',
-          },
-        ],
-      },
-    }),
-  ],
+            type: 'image/png'
+          }
+        ]
+      }
+    })
+  ]
 });
