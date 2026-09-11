@@ -7,7 +7,7 @@ interface HomeEspelhoVivoProps {
 }
 
 function formatKm(value: number): string {
-  return value.toFixed(2).replace('.', ',');
+  return value.toFixed(3).replace('.', ',');
 }
 
 export default function HomeEspelhoVivo({
