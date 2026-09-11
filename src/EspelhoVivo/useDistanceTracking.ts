@@ -13,7 +13,6 @@ export const useDistanceTracking = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastCoords, setLastCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Leitura e gerenciamento das distâncias acumuladas
   const [distances, setDistances] = useState<DistancesState>(() => {
     const saved = localStorage.getItem('espelho_vivo_distances');
     const todayStr = new Date().toISOString().split('T')[0];
@@ -50,12 +49,10 @@ export const useDistanceTracking = () => {
     return { day: 0, week: 0, month: 0, year: 0, lastUpdateDate: todayStr };
   });
 
-  // Salva no localStorage sempre que distances for alterado
   useEffect(() => {
     localStorage.setItem('espelho_vivo_distances', JSON.stringify(distances));
   }, [distances]);
 
-  // Função para calcular distância entre coordenadas (Haversine em km)
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -72,8 +69,7 @@ export const useDistanceTracking = () => {
 
   useEffect(() => {
     if (!('geolocation' in navigator)) {
-      const msg = 'Geolocalização não é suportada por este navegador.';
-      setError(msg);
+      setError('Geolocalização não é suportada por este navegador.');
       setGpsStatus('error');
       return;
     }
@@ -95,7 +91,6 @@ export const useDistanceTracking = () => {
           longitude
         );
 
-        // Filtra ruídos pequenos de variação do GPS em repouso (< 10 metros)
         if (deltaKm > 0.01) {
           setDistances((prev) => ({
             ...prev,
@@ -114,21 +109,8 @@ export const useDistanceTracking = () => {
     };
 
     const handleError = (err: GeolocationPositionError) => {
-      let mensagem = 'Erro desconhecido ao obter GPS.';
-      switch (err.code) {
-        case err.PERMISSION_DENIED:
-          mensagem = 'Permissão do GPS foi negada pelo usuário.';
-          break;
-        case err.POSITION_UNAVAILABLE:
-          mensagem = 'Sinal do GPS indisponível no momento.';
-          break;
-        case err.TIMEOUT:
-          mensagem = 'Tempo limite esgotado ao buscar localização.';
-          break;
-      }
-      console.warn(`[GPS Error]: ${mensagem}`);
-      setError(mensagem);
       setGpsStatus('error');
+      setError(err.message);
     };
 
     const watchId = navigator.geolocation.watchPosition(

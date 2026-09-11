@@ -52,12 +52,44 @@ export default function HomeEspelhoVivo({
           </div>
         </section>
 
+        {/* MÉTROLOGIA PRINCIPAL */}
         <section className="metrics-grid">
           <div className="metric-card">
             <span className="metric-icon">🚶</span>
-            <span className="card-label">DISTÂNCIA HOJE</span>
+            <span className="card-label">DISTÂNCIA</span>
             <strong>{formatKm(distances.day)}</strong>
-            <small>Percorrida hoje</small>
+            <small>Distância detectada</small>
+          </div>
+
+          <div className="metric-card">
+            <span className="metric-icon">⏱️</span>
+            <span className="card-label">TEMPO PARADO</span>
+            <strong>0:00:00</strong>
+            <small>Tempo em repouso</small>
+          </div>
+
+          <div className="metric-card">
+            <span className="metric-icon">🚗</span>
+            <span className="card-label">VEÍCULOS</span>
+            <strong>0,000 km</strong>
+            <small>Percurso em transporte</small>
+          </div>
+
+          <div className="metric-card">
+            <span className="metric-icon">📱</span>
+            <span className="card-label">TELA</span>
+            <strong>0:00:00 hs</strong>
+            <small>Tempo de uso do dispositivo</small>
+          </div>
+        </section>
+
+        {/* ACUMULADO POR PERÍODO (ABAIXO) */}
+        <section className="metrics-grid" style={{ marginTop: '1.5rem' }}>
+          <div className="metric-card">
+            <span className="metric-icon">☀️</span>
+            <span className="card-label">HOJE</span>
+            <strong>{formatKm(distances.day)}</strong>
+            <small>Total do dia</small>
           </div>
 
           <div className="metric-card">
