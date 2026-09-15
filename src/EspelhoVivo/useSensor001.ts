@@ -92,7 +92,12 @@
            setAcquisitionMode(evt.acquisition_mode);
            acquisition.setMode(evt.acquisition_mode);
    
-           recordSample(evt.activity, delta, evt.distance, evt.steps);
+           // passos: usa frequência × Δt para não contar a janela inteira a cada tick
+           const stepsDelta =
+             evt.step_frequency > 0
+               ? Math.max(0, Math.round(evt.step_frequency * (delta / 1000)))
+               : 0;
+           recordSample(evt.activity, delta, evt.distance, stepsDelta);
            setTotals(readTotals());
          }
        }, PARAMS.EVAL_INTERVAL_MS);
